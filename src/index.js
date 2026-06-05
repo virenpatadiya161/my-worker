@@ -15,6 +15,7 @@ import { DurableObject } from "cloudflare:workers";
  *
  * @typedef {Object} Env
  * @property {DurableObjectNamespace} MY_DURABLE_OBJECT - The Durable Object namespace binding
+ * @property {any} FLAGS - Service binding for the wa-dashboard-flags worker
  */
 
 /** A Durable Object's behavior is defined in an exported Javascript class */
@@ -52,11 +53,66 @@ export default {
 	 * @returns {Promise<Response>} The response to be sent back to the client
 	 */
 	async fetch(request, env, ctx) {
-		// Create a stub to open a communication channel with the Durable Object
-		// instance named "foo".
-		//
-		// Requests from all Workers to the Durable Object instance named "foo"
-		// will go to a single remote Durable Object instance.
+		const url = new URL(request.url);
+		const flagsService = env.FLAGS;
+
+		// POST /createTelegramChannel
+		// body: { channelName: string }
+		if (url.pathname === "/createTelegramChannel") {
+			if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
+			const body = await request.json();
+			return flagsService.fetch(
+				new Request("https://flags/eventPush", {
+					method: "POST",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({
+						type: "createTelegramChannel",
+						payload: { channelName: body.channelName },
+					}),
+				})
+			);
+		}
+
+		// POST /sendMessageToTelegramChannel
+		// body: { channelId: string, message: string }
+		if (url.pathname === "/sendMessageToTelegramChannel") {
+			if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
+			const body = await request.json();
+			if (!body.channelId || !body.message) {
+				return new Response("Missing channelId or message", { status: 400 });
+			}
+			return flagsService.fetch(
+				new Request("https://flags/eventPush", {
+					method: "POST",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({
+						type: "sendMessageToTelegramChannel",
+						payload: { channelId: body.channelId, message: body.message },
+					}),
+				})
+			);
+		}
+
+		// POST /addChannelToChatFolder
+		// body: { channelId: string, folderName: string }
+		if (url.pathname === "/addChannelToChatFolder") {
+			if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
+			const body = await request.json();
+			if (!body.channelId || !body.folderName) {
+				return new Response("Missing channelId or folderName", { status: 400 });
+			}
+			return flagsService.fetch(
+				new Request("https://flags/eventPush", {
+					method: "POST",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({
+						type: "addChannelToChatFolder",
+						payload: { channelId: body.channelId, folderName: body.folderName },
+					}),
+				})
+			);
+		}
+
 		const stub = env.MY_DURABLE_OBJECT.getByName("foo");
 
 		// Call the `sayHello()` RPC method on the stub to invoke the method on

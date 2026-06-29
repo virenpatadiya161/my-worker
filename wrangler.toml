@@ -23,6 +23,7 @@ compatibility_flags = ["nodejs_compat"]
 [[services]]
 binding = "FLAGS"
 service = "wa-dashboard-flags"
+entrypoint = "FlagsEntrypoint"
 
 # Smart Placement
 # https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

@@ -10,7 +10,7 @@ function errorResponse(message, status = 400) {
 	return Response.json(
 		{ success: false, message },
 		{ status }
-	)
+	);
 }
 
 export default {
